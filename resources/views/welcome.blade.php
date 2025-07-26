@@ -1,18 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
+<x-custom-layout>
 
-<head>
-    <meta charset="UTF-8">
-    <title>CompareLoan – Find the Best Loan Option</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @push('styles')
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
         .animate-fade-in {
             animation: fadeIn 0.6s ease-out;
         }
@@ -73,30 +62,8 @@
             }
         }
     </style>
-</head>
-
-<body class="bg-gradient-to-br from-blue-50 via-white to-indigo-50 text-gray-800 min-h-screen">
-
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                    </div>
-                    <h1 class="text-2xl font-bold text-gray-900">CompareLoan</h1>
-                </div>
-                <div class="hidden sm:flex items-center space-x-2 text-sm text-gray-600">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <span>Live rates updated</span>
-                </div>
-            </div>
-        </div>
-    </header>
+    @endpush
+    </head>
 
     <div class="min-h-screen flex flex-col lg:flex-row">
         <!-- Left side: Enhanced Info section -->
@@ -279,7 +246,7 @@
                             <div class="relative">
                                 <span
                                     class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">KES</span>
-                                <input type="number" name="monthly_payment" placeholder="10,000"
+                                <input type="text" name="monthly_payment" placeholder="10,000"
                                     class="w-full pl-14 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 input-focus font-medium"
                                     min="1000" />
                             </div>
@@ -350,6 +317,8 @@
         </div>
     </div>
 
+
+    @push('scripts')
     <script>
         // Tab switching functionality
         const periodTab = document.getElementById('period-tab');
@@ -435,7 +404,6 @@
             }
         });
     </script>
+    @endpush
 
-</body>
-
-</html>
+</x-custom-layout>

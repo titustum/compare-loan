@@ -81,7 +81,7 @@ class LoanController extends Controller
         $bankResults = collect($bankResults)->sortBy('emi')->values();
         $saccoResults = collect($saccoResults)->sortBy('emi')->values();
 
-        return view('results2', [
+        return view('results', [
             'amount' => $amount,
             'months' => $months,
             'monthly' => $monthly,
