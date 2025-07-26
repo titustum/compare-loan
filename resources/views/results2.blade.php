@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <title>CompareLoan – Loan Comparison Results</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -102,10 +102,18 @@
         }
 
         .tab-button.active {
+            font-weight: 700;
+            border-b-2 border-blue-600;
+            color: #2563eb;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .tab-button:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #2563eb;
         }
 
         .savings-badge {
@@ -172,22 +180,30 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
                         <div class="space-y-2">
                             <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Loan Amount</p>
-                            <p class="text-3xl font-bold text-gray-900">KES 500,000</p>
+                            <p class="text-3xl font-bold text-gray-900">KES {{ number_format($amount) }}</p>
                         </div>
                         <div class="space-y-2">
                             <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Repayment Period</p>
-                            <p class="text-3xl font-bold text-gray-900">24 months</p>
+                            <p class="text-3xl font-bold text-gray-900">{{ $months }} months</p>
                         </div>
                         <div class="space-y-2">
                             <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Offers Found</p>
-                            <p class="text-3xl font-bold text-blue-600">12 lenders</p>
+                            <p class="text-3xl font-bold text-blue-600">{{ $bankResults->count() +
+                                $saccoResults->count() }} lenders</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Best Offer Highlight -->
-            <div class="best-offer rounded-2xl p-8 text-white text-center mb-8 animate-slide-up">
+            @php
+            $allOffers = $bankResults->merge($saccoResults)->sortBy('emi')->values();
+            $bestOffer = $allOffers->first();
+            @endphp
+
+            @if($bestOffer)
+            <div
+                class="best-offer rounded-2xl p-8 text-white text-center mb-8 animate-slide-up bg-gradient-to-r from-blue-700 to-blue-500">
                 <div class="relative z-10">
                     <div class="flex items-center justify-center mb-4">
                         <svg class="w-8 h-8 mr-2" fill="currentColor" viewBox="0 0 24 24">
@@ -199,41 +215,44 @@
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div>
                             <p class="text-blue-100 text-sm mb-1">Lender</p>
-                            <p class="text-xl font-bold">Equity Bank</p>
+                            <p class="text-xl font-bold">{{ $bestOffer->bank->name }}</p>
                         </div>
                         <div>
                             <p class="text-blue-100 text-sm mb-1">Interest Rate</p>
-                            <p class="text-xl font-bold">12.5% p.a.</p>
+                            <p class="text-xl font-bold">{{ number_format($bestOffer->rate, 2) }}% p.a.</p>
                         </div>
                         <div>
                             <p class="text-blue-100 text-sm mb-1">Monthly Payment</p>
-                            <p class="text-xl font-bold">KES 23,456</p>
+                            <p class="text-xl font-bold">KES {{ number_format($bestOffer->emi) }}</p>
                         </div>
                         <div>
-                            <p class="text-blue-100 text-sm mb-1">Total Savings</p>
-                            <div class="savings-badge rounded-full px-3 py-1 inline-block">
-                                <p class="text-white font-bold">KES 45,000</p>
+                            <p class="text-blue-100 text-sm mb-1">Total Interest</p>
+                            <div class="savings-badge rounded-full px-3 py-1 inline-block bg-white bg-opacity-20">
+                                <p class="text-white font-bold">KES {{ number_format($bestOffer->interest) }}</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            @endif
         </section>
+
 
         <!-- Comparison Tabs -->
         <section class="mb-8">
             <div class="flex flex-wrap justify-center space-x-1 bg-gray-100 rounded-xl p-1 max-w-md mx-auto">
                 <button id="all-tab" class="tab-button active px-6 py-3 rounded-lg font-medium text-sm transition-all">
-                    All Offers (12)
+                    All Offers ({{ $bankResults->count() + $saccoResults->count() }})
                 </button>
                 <button id="banks-tab" class="tab-button px-6 py-3 rounded-lg font-medium text-sm text-gray-600">
-                    Banks (7)
+                    Banks ({{ $bankResults->count() }})
                 </button>
                 <button id="saccos-tab" class="tab-button px-6 py-3 rounded-lg font-medium text-sm text-gray-600">
-                    SACCOs (5)
+                    SACCOs ({{ $saccoResults->count() }})
                 </button>
             </div>
         </section>
+
 
         <!-- Enhanced Results Tables -->
         <section class="space-y-8">
@@ -278,104 +297,68 @@
                             </thead>
                             <tbody class="divide-y divide-gray-100">
                                 <!-- Sample row 1 - Best offer -->
+                                @php
+                                $allOffers = $bankResults->merge($saccoResults)->sortBy('total')->values();
+                                @endphp
+
+                                @foreach ($allOffers as $index => $offer)
                                 <tr
-                                    class="hover:bg-blue-50/50 transition-colors border-l-4 border-l-green-500 bg-green-50/30">
+                                    class="hover:bg-{{ $index === 0 ? 'blue-50/50 border-l-4 border-l-green-500 bg-green-50/30' : 'gray-50' }} transition-colors">
                                     <td class="px-6 py-4">
                                         <div class="flex items-center">
                                             <div
-                                                class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                                                1</div>
+                                                class="w-8 h-8 {{ $index === 0 ? 'bg-green-500' : 'bg-gray-500' }} text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                                {{ $index + 1 }}
+                                            </div>
+                                            @if ($index === 0)
                                             <span class="ml-2 text-xs font-medium text-green-600">BEST</span>
+                                            @endif
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center space-x-3">
                                             <div
-                                                class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                                EQ</div>
+                                                class="w-10 h-10 bg-{{ $offer->bank->type === 'bank' ? 'red' : 'green' }}-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                                {{ strtoupper(substr($offer->bank->name, 0, 2)) }}
+                                            </div>
                                             <div>
-                                                <p class="font-semibold text-gray-900">Equity Bank</p>
-                                                <p class="text-sm text-gray-500">Personal Loan</p>
+                                                <p class="font-semibold text-gray-900">{{ $offer->bank->name }}</p>
+                                                <p class="text-sm text-gray-500">{{ $offer->bank->product_name ?? 'Loan'
+                                                    }}</p>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 text-center">
                                         <span
-                                            class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Bank</span>
+                                            class="bg-{{ $offer->bank->type === 'bank' ? 'blue' : 'green' }}-100 text-{{ $offer->bank->type === 'bank' ? 'blue' : 'green' }}-800 px-3 py-1 rounded-full text-sm font-medium">
+                                            {{ ucfirst($offer->bank->type) }}
+                                        </span>
                                     </td>
-                                    <td class="px-6 py-4 text-right font-semibold text-gray-900">12.5</td>
-                                    <td class="px-6 py-4 text-right font-semibold text-gray-900">KES 23,456</td>
-                                    <td class="px-6 py-4 text-right text-gray-600">KES 62,944</td>
-                                    <td class="px-6 py-4 text-right font-bold text-gray-900">KES 562,944</td>
+                                    <td class="px-6 py-4 text-right font-semibold text-gray-900">{{
+                                        number_format($offer->rate, 2) }}</td>
+                                    <td class="px-6 py-4 text-right font-semibold text-gray-900">KES {{
+                                        number_format($offer->emi) }}</td>
+                                    <td class="px-6 py-4 text-right text-gray-600">KES {{
+                                        number_format($offer->interest) }}</td>
+                                    <td class="px-6 py-4 text-right font-bold text-gray-900">KES {{
+                                        number_format($offer->total) }}</td>
                                     <td class="px-6 py-4 text-center">
+                                        @if ($index === 0)
                                         <span
                                             class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">-</span>
+                                        @else
+                                        @php
+                                        $savings = round($offer->total - $allOffers[0]->total);
+                                        @endphp
+                                        <span
+                                            class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm font-medium">
+                                            +{{ number_format($savings) }}
+                                        </span>
+                                        @endif
                                     </td>
                                 </tr>
+                                @endforeach
 
-                                <!-- Sample row 2 -->
-                                <tr class="hover:bg-gray-50 transition-colors">
-                                    <td class="px-6 py-4">
-                                        <div
-                                            class="w-8 h-8 bg-gray-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                                            2</div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="flex items-center space-x-3">
-                                            <div
-                                                class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                                KS</div>
-                                            <div>
-                                                <p class="font-semibold text-gray-900">Kenya Savings SACCO</p>
-                                                <p class="text-sm text-gray-500">Development Loan</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 text-center">
-                                        <span
-                                            class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">SACCO</span>
-                                    </td>
-                                    <td class="px-6 py-4 text-right font-semibold text-gray-900">13.2</td>
-                                    <td class="px-6 py-4 text-right font-semibold text-gray-900">KES 23,892</td>
-                                    <td class="px-6 py-4 text-right text-gray-600">KES 73,408</td>
-                                    <td class="px-6 py-4 text-right font-bold text-gray-900">KES 573,408</td>
-                                    <td class="px-6 py-4 text-center">
-                                        <span
-                                            class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm font-medium">+10,464</span>
-                                    </td>
-                                </tr>
-
-                                <!-- Sample row 3 -->
-                                <tr class="hover:bg-gray-50 transition-colors">
-                                    <td class="px-6 py-4">
-                                        <div
-                                            class="w-8 h-8 bg-gray-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                                            3</div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="flex items-center space-x-3">
-                                            <div
-                                                class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                                CB</div>
-                                            <div>
-                                                <p class="font-semibold text-gray-900">Cooperative Bank</p>
-                                                <p class="text-sm text-gray-500">Personal Loan</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 text-center">
-                                        <span
-                                            class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Bank</span>
-                                    </td>
-                                    <td class="px-6 py-4 text-right font-semibold text-gray-900">14.0</td>
-                                    <td class="px-6 py-4 text-right font-semibold text-gray-900">KES 24,256</td>
-                                    <td class="px-6 py-4 text-right text-gray-600">KES 82,144</td>
-                                    <td class="px-6 py-4 text-right font-bold text-gray-900">KES 582,144</td>
-                                    <td class="px-6 py-4 text-center">
-                                        <span
-                                            class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm font-medium">+19,200</span>
-                                    </td>
-                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -391,88 +374,58 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-                        <!-- Bank Card 1 -->
+                        @foreach ($bankResults as $index => $bank)
                         <div class="card-hover bg-white rounded-xl p-6 border border-gray-200">
                             <div class="flex items-center justify-between mb-4">
                                 <div class="flex items-center space-x-3">
                                     <div
                                         class="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center text-white font-bold">
-                                        EQ</div>
+                                        {{ strtoupper(substr($bank->bank->name, 0, 2)) }}
+                                    </div>
                                     <div>
-                                        <h4 class="font-semibold text-gray-900">Equity Bank</h4>
-                                        <p class="text-sm text-gray-500">Personal Loan</p>
+                                        <h4 class="font-semibold text-gray-900">{{ $bank->bank->name }}</h4>
+                                        <p class="text-sm text-gray-500">{{ $bank->bank->product_name ?? 'Loan' }}</p>
                                     </div>
                                 </div>
+                                @if ($index === 0)
                                 <span
                                     class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">BEST</span>
+                                @endif
                             </div>
 
                             <div class="space-y-3">
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Interest Rate</span>
-                                    <span class="font-semibold">12.5% p.a.</span>
+                                    <span class="font-semibold">{{ number_format($bank->rate, 2) }}% p.a.</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Monthly Payment</span>
-                                    <span class="font-semibold text-blue-600">KES 23,456</span>
+                                    <span class="font-semibold text-blue-600">KES {{ number_format($bank->emi) }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Total Cost</span>
-                                    <span class="font-semibold">KES 562,944</span>
-                                </div>
-
-                                <!-- Progress bar for competitiveness -->
-                                <div class="mt-4">
-                                    <div class="flex justify-between text-sm text-gray-600 mb-1">
-                                        <span>Competitiveness</span>
-                                        <span>95%</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2">
-                                        <div class="progress-bar h-2 rounded-full" style="--progress-width: 95%;"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Additional bank cards would go here -->
-                        <div class="card-hover bg-white rounded-xl p-6 border border-gray-200">
-                            <div class="flex items-center justify-between mb-4">
-                                <div class="flex items-center space-x-3">
-                                    <div
-                                        class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                                        CB</div>
-                                    <div>
-                                        <h4 class="font-semibold text-gray-900">Cooperative Bank</h4>
-                                        <p class="text-sm text-gray-500">Personal Loan</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="space-y-3">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Interest Rate</span>
-                                    <span class="font-semibold">14.0% p.a.</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Monthly Payment</span>
-                                    <span class="font-semibold text-blue-600">KES 24,256</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Total Cost</span>
-                                    <span class="font-semibold">KES 582,144</span>
+                                    <span class="font-semibold">KES {{ number_format($bank->total) }}</span>
                                 </div>
 
                                 <div class="mt-4">
                                     <div class="flex justify-between text-sm text-gray-600 mb-1">
                                         <span>Competitiveness</span>
-                                        <span>78%</span>
+                                        @php
+                                        $base = $bankResults[0]->total;
+                                        $percent = max(100 - (($bank->total - $base) / $base * 100), 60);
+                                        @endphp
+                                        <span>{{ round($percent) }}%</span>
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-2">
-                                        <div class="progress-bar h-2 rounded-full" style="--progress-width: 78%;"></div>
+                                        <div class="progress-bar h-2 rounded-full"
+                                            style="--progress-width: {{ round($percent) }}%;"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        @endforeach
+
+
                     </div>
                 </div>
             </div>
@@ -486,16 +439,18 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-                        <!-- SACCO Card 1 -->
+
+                        @foreach ($saccoResults as $index => $sacco)
                         <div class="card-hover bg-white rounded-xl p-6 border border-gray-200">
                             <div class="flex items-center justify-between mb-4">
                                 <div class="flex items-center space-x-3">
                                     <div
                                         class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center text-white font-bold">
-                                        KS</div>
+                                        {{ strtoupper(substr($sacco->bank->name, 0, 2)) }}
+                                    </div>
                                     <div>
-                                        <h4 class="font-semibold text-gray-900">Kenya Savings SACCO</h4>
-                                        <p class="text-sm text-gray-500">Development Loan</p>
+                                        <h4 class="font-semibold text-gray-900">{{ $sacco->bank->name }}</h4>
+                                        <p class="text-sm text-gray-500">{{ $sacco->bank->product_name ?? 'Loan' }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -503,38 +458,55 @@
                             <div class="space-y-3">
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Interest Rate</span>
-                                    <span class="font-semibold">13.2% p.a.</span>
+                                    <span class="font-semibold">{{ number_format($sacco->rate, 2) }}% p.a.</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Monthly Payment</span>
-                                    <span class="font-semibold text-green-600">KES 23,892</span>
+                                    <span class="font-semibold text-green-600">KES {{ number_format($sacco->emi)
+                                        }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Total Cost</span>
-                                    <span class="font-semibold">KES 573,408</span>
+                                    <span class="font-semibold">KES {{ number_format($sacco->total) }}</span>
                                 </div>
 
                                 <div class="mt-4">
                                     <div class="flex justify-between text-sm text-gray-600 mb-1">
                                         <span>Competitiveness</span>
-                                        <span>87%</span>
+                                        @php
+                                        $base = $saccoResults[0]->total;
+                                        $percent = max(100 - (($sacco->total - $base) / $base * 100), 60);
+                                        @endphp
+                                        <span>{{ round($percent) }}%</span>
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-2">
-                                        <div class="progress-bar h-2 rounded-full" style="--progress-width: 87%;"></div>
+                                        <div class="progress-bar h-2 rounded-full"
+                                            style="--progress-width: {{ round($percent) }}%;"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        @endforeach
+
                     </div>
                 </div>
             </div>
         </section>
+
+        @php
+        $allOffers = $bankResults->merge($saccoResults)->sortBy('total')->values();
+        $bestOffer = $allOffers->first();
+        $worstOffer = $allOffers->last();
+        $savings = $worstOffer->total - $bestOffer->total;
+        $lenderCount = $allOffers->count();
+        @endphp
 
         <!-- Key Insights -->
         <section class="mt-12 animate-fade-in">
             <div class="bg-white rounded-2xl shadow-xl p-8">
                 <h3 class="text-2xl font-bold text-gray-900 mb-6">Key Insights</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Best Rate Found -->
                     <div class="text-center p-6 bg-blue-50 rounded-xl">
                         <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -543,10 +515,11 @@
                             </svg>
                         </div>
                         <h4 class="font-semibold text-gray-900 mb-2">Best Rate Found</h4>
-                        <p class="text-2xl font-bold text-blue-600">12.5%</p>
-                        <p class="text-sm text-gray-600">From Equity Bank</p>
+                        <p class="text-2xl font-bold text-blue-600">{{ number_format($bestOffer->rate, 2) }}%</p>
+                        <p class="text-sm text-gray-600">From {{ $bestOffer->bank->name }}</p>
                     </div>
 
+                    <!-- Potential Savings -->
                     <div class="text-center p-6 bg-green-50 rounded-xl">
                         <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -555,10 +528,11 @@
                             </svg>
                         </div>
                         <h4 class="font-semibold text-gray-900 mb-2">Potential Savings</h4>
-                        <p class="text-2xl font-bold text-green-600">KES 45,000</p>
+                        <p class="text-2xl font-bold text-green-600">KES {{ number_format($savings) }}</p>
                         <p class="text-sm text-gray-600">vs. worst offer</p>
                     </div>
 
+                    <!-- Lenders Compared -->
                     <div class="text-center p-6 bg-purple-50 rounded-xl">
                         <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -567,19 +541,24 @@
                             </svg>
                         </div>
                         <h4 class="font-semibold text-gray-900 mb-2">Lenders Compared</h4>
-                        <p class="text-2xl font-bold text-purple-600">12</p>
+                        <p class="text-2xl font-bold text-purple-600">{{ $lenderCount }}</p>
                         <p class="text-sm text-gray-600">Banks & SACCOs</p>
                     </div>
                 </div>
             </div>
         </section>
 
+
+
         <!-- Repayment Schedule Preview -->
         <section class="mt-12 animate-fade-in">
             <div class="bg-white rounded-2xl shadow-xl p-8">
                 <div class="flex items-center justify-between mb-6">
                     <h3 class="text-2xl font-bold text-gray-900">Repayment Schedule Preview</h3>
-                    <button class="text-blue-600 hover:text-blue-700 font-medium">View Full Schedule →</button>
+                    <a href="{{ route('loan.schedule', $bestOffer->bank->id) }}"
+                        class="text-blue-600 hover:text-blue-700 font-medium">
+                        View Full Schedule →
+                    </a>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -594,16 +573,19 @@
                         <div class="space-y-3">
                             <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                                 <span class="text-gray-600">Principal Payment</span>
-                                <span class="font-semibold text-gray-900">KES 20,833</span>
+                                <span class="font-semibold text-gray-900">KES {{
+                                    number_format($bestOffer->emi) }}</span>
                             </div>
                             <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                                 <span class="text-gray-600">Interest Payment</span>
-                                <span class="font-semibold text-gray-900">KES 2,623</span>
+                                <span class="font-semibold text-gray-900">KES {{
+                                    number_format($bestOffer->interest) }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
                                 <span class="text-blue-700 font-medium">Total Monthly Payment</span>
-                                <span class="font-bold text-blue-700">KES 23,456</span>
+                                <span class="font-bold text-blue-700">KES {{ number_format($bestOffer->total)
+                                    }}</span>
                             </div>
                         </div>
 
@@ -616,13 +598,15 @@
                                 </svg>
                                 <span class="font-medium text-green-800">Payment fits your budget</span>
                             </div>
-                            <p class="text-sm text-green-700">Based on typical income guidelines, this payment is within
-                                recommended limits.</p>
+                            <p class="text-sm text-green-700">
+                                Based on typical income guidelines, this payment is within recommended limits.
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
+
 
         <!-- Next Steps -->
         <section class="mt-12 animate-fade-in">
@@ -632,18 +616,29 @@
                     Contact your preferred lender directly to start the application process. Most banks and SACCOs offer
                     online applications.
                 </p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <button
-                        class="bg-white text-blue-600 hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-colors">
-                        Contact Equity Bank
-                    </button>
-                    <button
-                        class="border border-white text-white hover:bg-white hover:text-blue-600 px-6 py-3 rounded-lg font-semibold transition-colors">
+                {{-- <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="{{ route('contact.lender', ['id' => $bestOffer->bank->id]) }}"
+                        class="bg-white text-blue-600 hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-colors inline-block">
+                        Contact {{ $bestOffer->bank->name }}
+                    </a>
+                    <a href="{{ route('compare.more') }}"
+                        class="border border-white text-white hover:bg-white hover:text-blue-600 px-6 py-3 rounded-lg font-semibold transition-colors inline-block">
                         Compare More Options
-                    </button>
+                    </a>
+                </div> --}}
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="#{{ $bestOffer->bank->id }}"
+                        class="bg-white text-blue-600 hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-colors inline-block">
+                        Contact {{ $bestOffer->bank->name }}
+                    </a>
+                    <a href="#compare-more-options"
+                        class="border border-white text-white hover:bg-white hover:text-blue-600 px-6 py-3 rounded-lg font-semibold transition-colors inline-block">
+                        Compare More Options
+                    </a>
                 </div>
             </div>
         </section>
+
     </main>
 
     <!-- Enhanced Footer -->

@@ -7,6 +7,7 @@ use App\Http\Controllers\LoanController;
 
 Route::get('/', [LoanController::class, 'index'])->name('home');
 Route::post('/compare', [LoanController::class, 'compare'])->name('loan.compare');
+Route::get('/loan/schedule/{id}', [LoanController::class, 'schedule'])->name('loan.schedule');
  
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
