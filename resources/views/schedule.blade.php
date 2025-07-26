@@ -135,7 +135,7 @@
         <div class="max-w-7xl mx-auto px-4 py-12">
             <h1 class="text-3xl font-bold mb-6">Repayment Schedule for {{ $bank->name }}</h1>
 
-            <div class="bg-white rounded-2xl shadow-lg p-8">
+            <div class="bg-white rounded-2xl shadow-lg print:shadow-none p-8">
                 <h2 class="text-xl font-semibold mb-4">Loan Details</h2>
                 <ul class="mb-8 text-gray-700 space-y-2">
                     <li><strong>Loan Amount:</strong> KES {{ number_format($amount, 2) }}</li>
@@ -196,7 +196,7 @@
 
 
         <!-- Next Steps -->
-        <section class="mt-12 animate-fade-in">
+        <section class="mt-12 animate-fade-in print:hidden">
             <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white text-center">
                 <h3 class="text-2xl font-bold mb-4">Ready to Apply?</h3>
                 <p class="text-blue-100 mb-6 max-w-2xl mx-auto">

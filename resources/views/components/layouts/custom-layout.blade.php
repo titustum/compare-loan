@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth text-sm md:text-base">
 
 <head>
     <meta charset="UTF-8" />
@@ -21,7 +21,7 @@
 <body class="bg-gradient-to-br from-blue-50 via-white to-indigo-50 text-gray-800 min-h-screen">
 
     <!-- Enhanced Header -->
-    <header class="sticky-header sticky top-0 z-50 border-b border-gray-200/20 p-6">
+    <header class="sticky-header sticky top-0 z-50 border-b border-gray-200 p-6 print:hidden">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <a href="{{ route('home') }}" class="flex items-center space-x-3">
                 <div class="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center">
@@ -68,7 +68,7 @@
 
     @if (!Request::routeIs('home'))
     <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12 mt-16">
+    <footer class="bg-gray-900 text-white py-12 mt-16 print:hidden">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div class="col-span-1 md:col-span-2">

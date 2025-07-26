@@ -22,12 +22,12 @@ class LoanController extends Controller
         ]);
 
         $amount = (float) $request->input('amount');
-        $period = (int) $request->input('period');
+        $period = $request->input('period');
         $unit = $request->input('period_unit', 'months');
         $monthly = (float) $request->input('monthly_payment');
 
-        // Normalize period to months
-        $months = $unit === 'years' ? $period * 12 : $period;
+        // Normalize period to months if given
+        $months = $period ? ($unit === 'years' ? $period * 12 : $period) : null;
 
         $bankList = Bank::where('min_amount', '<=', $amount)
             ->where(function ($q) use ($amount) {
@@ -40,11 +40,11 @@ class LoanController extends Controller
         $saccoResults = [];
 
         foreach ($bankList as $bank) {
-            $rate = $bank->annual_rate / 100 / 12;
-            $n = $months ?? 0;
+            $rate = $bank->annual_rate / 100 / 12; // monthly interest rate
 
-            if ($n > 0) {
-                // Calculate EMI
+            if ($months && $months > 0) {
+                $n = $months;
+
                 $emi = ($rate > 0)
                     ? ($amount * $rate * pow(1 + $rate, $n)) / (pow(1 + $rate, $n) - 1)
                     : $amount / $n;
@@ -53,13 +53,25 @@ class LoanController extends Controller
                 $interest = $total - $amount;
 
             } elseif ($monthly > 0 && $rate > 0) {
-                // Reverse calculate months from EMI
-                $n = log($monthly / ($monthly - $rate * $amount)) / log(1 + $rate);
+                // Calculate months using reverse EMI formula
+                $denominator = $monthly - $rate * $amount;
+
+                if ($denominator <= 0) {
+                    continue; // Invalid scenario, skip this bank
+                }
+
+                $n = log($monthly / $denominator) / log(1 + $rate);
+
+                if ($n <= 0 || !is_finite($n)) {
+                    continue; // Calculation failed
+                }
+
                 $emi = $monthly;
                 $total = $emi * $n;
                 $interest = $total - $amount;
+
             } else {
-                continue;
+                continue; // Not enough input to calculate
             }
 
             $entry = (object)[
@@ -83,7 +95,7 @@ class LoanController extends Controller
 
         return view('results', [
             'amount' => $amount,
-            'months' => $months,
+            'months' => $months, // this may be null if reverse calculated
             'monthly' => $monthly,
             'bankResults' => $bankResults,
             'saccoResults' => $saccoResults,

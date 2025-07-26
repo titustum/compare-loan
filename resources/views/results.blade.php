@@ -505,7 +505,7 @@
             <div class="bg-white rounded-2xl shadow-xl p-8">
                 <div class="flex items-center justify-between mb-6">
                     <h3 class="text-2xl font-bold text-gray-900">Repayment Schedule Preview</h3>
-                    <a href="{{ route('loan.schedule', $bestOffer->bank->id) }}"
+                    <a href="{{ route('loan.schedule', $bestOffer->bank->id) }}?amount={{ $amount }}&months={{ $months }}"
                         class="text-blue-600 hover:text-blue-700 font-medium">
                         View Full Schedule →
                     </a>
